@@ -19,6 +19,23 @@ export type VisualizerMode = 'bars2d' | 'radial2d' | 'oscilloscope2d' | 'sphere3
         {{ renderError }}
       </div>
 
+      <!-- Real FFT Live Audio Sync Overlay -->
+      <div class="audio-capture-overlay" *ngIf="!useTabAudio && !dismissedAudioPrompt">
+        <div class="overlay-card">
+          <div class="overlay-icon">
+            <svg viewBox="0 0 24 24" width="40" height="40" fill="#1db954">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+            </svg>
+          </div>
+          <h3>Sync Live Tab Audio</h3>
+          <p>Enable 100% accurate, beat-synced visuals by sharing this browser tab's audio.</p>
+          <div class="overlay-actions">
+            <button class="overlay-btn primary" (click)="startTabAudio()">Share Tab Audio</button>
+            <button class="overlay-btn secondary" (click)="dismissPrompt()">Procedural Fallback</button>
+          </div>
+        </div>
+      </div>
+
       <div class="visualizer-controls">
         <button class="tab-audio-btn" (click)="toggleTabAudio()" [class.active]="useTabAudio" title="Toggle Real FFT via Tab Audio">
           <svg viewBox="0 0 24 24" width="16" height="16">
@@ -110,6 +127,84 @@ export type VisualizerMode = 'bars2d' | 'radial2d' | 'oscilloscope2d' | 'sphere3
       pointer-events: none;
       box-shadow: 0 4px 12px rgba(0,0,0,0.5);
     }
+    .audio-capture-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: rgba(5, 6, 8, 0.7);
+      backdrop-filter: blur(12px);
+      z-index: 50;
+      padding: 24px;
+    }
+    .overlay-card {
+      max-width: 400px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 32px 24px;
+      text-align: center;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    }
+    .overlay-icon {
+      margin-bottom: 20px;
+      filter: drop-shadow(0 0 10px rgba(29, 185, 84, 0.3));
+      animation: pulse-glow 2s infinite ease-in-out;
+    }
+    .overlay-card h3 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin: 0 0 12px 0;
+      font-family: 'Outfit', sans-serif;
+    }
+    .overlay-card p {
+      font-size: 0.85rem;
+      color: #9a9b9f;
+      margin: 0 0 24px 0;
+      line-height: 1.5;
+    }
+    .overlay-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .overlay-btn {
+      padding: 12px;
+      border-radius: 30px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: none;
+    }
+    .overlay-btn.primary {
+      background: #1db954;
+      color: #000000;
+    }
+    .overlay-btn.primary:hover {
+      background: #1ed760;
+      transform: scale(1.02);
+      box-shadow: 0 0 15px rgba(29, 185, 84, 0.4);
+    }
+    .overlay-btn.secondary {
+      background: transparent;
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+    .overlay-btn.secondary:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+    @keyframes pulse-glow {
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(29, 185, 84, 0.2)); }
+      50% { transform: scale(1.08); filter: drop-shadow(0 0 18px rgba(29, 185, 84, 0.5)); }
+    }
   `]
 })
 export class VisualizerComponent implements OnInit, AfterViewInit, OnDestroy {
@@ -183,6 +278,7 @@ export class VisualizerComponent implements OnInit, AfterViewInit, OnDestroy {
   private tabAudioStream: MediaStream | null = null;
   private sourceNode: MediaStreamAudioSourceNode | null = null;
   useTabAudio: boolean = false;
+  dismissedAudioPrompt: boolean = false;
   
   constructor(private playerService: PlayerService) {
     this.fftSmoothed = new Array(this.numFftBars).fill(0);
@@ -692,7 +788,11 @@ export class VisualizerComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  private async startTabAudio(): Promise<void> {
+  dismissPrompt(): void {
+    this.dismissedAudioPrompt = true;
+  }
+
+  async startTabAudio(): Promise<void> {
     try {
       const stream = await navigator.mediaDevices.getDisplayMedia({
         audio: true,

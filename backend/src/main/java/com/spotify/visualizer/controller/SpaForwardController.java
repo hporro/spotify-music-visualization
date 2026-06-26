@@ -13,8 +13,7 @@ public class SpaForwardController {
     @RequestMapping(value = {
         "",
         "/",
-        "/{path:[^\\.]*}",
-        "/{path:^(?!api|ws).*$}/**/{path:[^\\.]*}"
+        "/{path:^(?!api|ws|h2-console)[^\\.]*}"
     })
     public String forward() {
         return "forward:/index.html";
