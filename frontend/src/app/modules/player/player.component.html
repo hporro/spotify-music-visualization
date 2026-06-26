@@ -1,0 +1,154 @@
+<div class="dashboard-container">
+  <!-- Sidebar Panel: Player Controls & Status -->
+  <aside class="sidebar-panel">
+    <!-- Header: User profile info -->
+    <header class="user-header">
+      <div class="user-profile">
+        <img [src]="currentUser?.images?.[0]?.url || 'public/favicon.ico'" alt="Profile" class="avatar" />
+        <span class="username">{{ currentUser?.display_name || 'Spotify User' }}</span>
+      </div>
+      <button class="logout-btn" (click)="onLogout()" title="Logout">
+        <svg viewBox="0 0 24 24" width="20" height="20">
+          <path fill="currentColor" d="M16 17v-3H9v-4h7V7l5 5-5 5M14 2a2 2 0 0 1 2 2v2h-2V4H5v16h9v-2h2v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9z"/>
+        </svg>
+      </button>
+    </header>
+
+    <!-- Now Playing Card -->
+    <div class="now-playing-card" *ngIf="playbackState && playbackState.item; else noPlaybackTemplate">
+      <div class="artwork-container">
+        <img [src]="playbackState.item.album.images[0]?.url" alt="Album Art" class="album-art" />
+        <div class="glowing-shadow" [style.background-image]="getGlowingShadowStyle(playbackState.item.album.images[0]?.url)"></div>
+      </div>
+
+      <div class="track-details">
+        <h2 class="track-title" [title]="playbackState.item.name">{{ playbackState.item.name }}</h2>
+        <p class="track-artist">
+          <span *ngFor="let artist of playbackState.item.artists; let last = last">
+            {{ artist.name }}{{ last ? '' : ', ' }}
+          </span>
+        </p>
+      </div>
+
+      <!-- Progress Slider -->
+      <div class="progress-bar-container">
+        <span class="time-label">{{ formatTime(interpolatedProgressMs) }}</span>
+        <input 
+          type="range" 
+          class="progress-slider" 
+          [min]="0" 
+          [max]="playbackState.item.duration_ms" 
+          [value]="interpolatedProgressMs" 
+          (input)="onSliderInput($event)"
+          (change)="onSliderChange($event)" />
+        <span class="time-label">{{ formatTime(playbackState.item.duration_ms) }}</span>
+      </div>
+
+      <!-- Playback Controls -->
+      <div class="playback-controls">
+        <button class="control-btn" (click)="previous()" title="Previous">
+          <svg viewBox="0 0 24 24" class="control-icon"><path fill="currentColor" d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
+        </button>
+
+        <button class="control-btn play-pause-btn" (click)="togglePlay()" [title]="playbackState.is_playing ? 'Pause' : 'Play'">
+          <svg *ngIf="playbackState.is_playing" viewBox="0 0 24 24" class="control-icon play-icon"><path fill="currentColor" d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+          <svg *ngIf="!playbackState.is_playing" viewBox="0 0 24 24" class="control-icon play-icon"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>
+        </button>
+
+        <button class="control-btn" (click)="next()" title="Next">
+          <svg viewBox="0 0 24 24" class="control-icon"><path fill="currentColor" d="M6 18l8.5-6L6 6zm9-12v12h2V6z"/></svg>
+        </button>
+      </div>
+
+      <!-- Devices Panel Toggle -->
+      <div class="device-section">
+        <button class="device-toggle-btn" (click)="toggleDevices()" [class.active]="showDevices">
+          <svg viewBox="0 0 24 24" width="16" height="16" class="device-icon"><path fill="currentColor" d="M4 6h16v10H4zm16-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zM2 20h20v2H2z"/></svg>
+          <span class="active-device-name">{{ playbackState.device?.name || 'Select Spotify Device' }}</span>
+        </button>
+
+        <!-- Devices list overlay dropdown -->
+        <div class="devices-dropdown" *ngIf="showDevices">
+          <div class="dropdown-header">
+            <h3>Connect to device</h3>
+            <button class="refresh-devices-btn" (click)="refreshDevices()">↻</button>
+          </div>
+          <ul class="devices-list">
+            <li *ngFor="let device of devices" (click)="selectDevice(device)" [class.active-device]="device.is_active">
+              <span class="device-name">{{ device.name }}</span>
+              <span class="device-type">{{ device.type }}</span>
+            </li>
+            <li *ngIf="devices.length === 0" class="no-devices-item">
+              No active devices found. Open Spotify.
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fallback if no playback state is found -->
+    <ng-template #noPlaybackTemplate>
+      <div class="no-playback-container">
+        <div class="warning-icon">
+          <svg viewBox="0 0 24 24" width="48" height="48" fill="#1db954">
+            <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h-3V9h5v8zm0-10h-2V5h2v2z"/>
+          </svg>
+        </div>
+        <h3>No Playback Detected</h3>
+        <p>Start playing music on your Spotify app (phone, desktop, or web player) to begin real-time audio visualization.</p>
+        
+        <button class="refresh-status-btn" (click)="refreshDevices()">
+          Check for Active Devices
+        </button>
+
+        <div class="available-devices-list" *ngIf="devices.length > 0">
+          <h4>Select a device to activate:</h4>
+          <ul>
+            <li *ngFor="let d of devices" (click)="selectDevice(d)">
+              {{ d.name }} ({{ d.type }})
+            </li>
+          </ul>
+        </div>
+      </div>
+    </ng-template>
+
+    <!-- Visualizer Mode and Sensitivity Settings Panel -->
+    <div class="settings-panel">
+      <h3>Visualizer Settings</h3>
+      
+      <div class="settings-group">
+        <label>Mode</label>
+        <div class="mode-buttons-grid">
+          <button [class.active]="visualizerMode === 'bars2d'" (click)="setMode('bars2d')">2D Bars</button>
+          <button [class.active]="visualizerMode === 'radial2d'" (click)="setMode('radial2d')">2D Radial</button>
+          <button [class.active]="visualizerMode === 'oscilloscope2d'" (click)="setMode('oscilloscope2d')">2D Osc</button>
+          <button [class.active]="visualizerMode === 'sphere3d'" (click)="setMode('sphere3d')">3D Sphere</button>
+          <button [class.active]="visualizerMode === 'particles3d'" (click)="setMode('particles3d')">3D Particles</button>
+          <button [class.active]="visualizerMode === 'grid3d'" (click)="setMode('grid3d')">3D Grid</button>
+          <button [class.active]="visualizerMode === 'waterfall3d'" (click)="setMode('waterfall3d')">3D Terrain</button>
+          <button [class.active]="visualizerMode === 'symphony3d'" (click)="setMode('symphony3d')">3D Symphony</button>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="sensitivity-header">
+          <label>Sound Sensitivity</label>
+          <span>{{ sensitivity.toFixed(1) }}x</span>
+        </div>
+        <input 
+          type="range" 
+          min="0.5" 
+          max="2.0" 
+          step="0.1" 
+          [value]="sensitivity" 
+          (input)="onSensitivityChange($event)" 
+          class="sensitivity-slider" />
+      </div>
+    </div>
+  </aside>
+
+  <!-- Visualizer Viewport: High performance Canvas -->
+  <main class="visualizer-viewport">
+    <app-visualizer [mode]="visualizerMode" [sensitivity]="sensitivity"></app-visualizer>
+  </main>
+</div>
