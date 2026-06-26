@@ -4,6 +4,7 @@ WORKDIR /app/frontend
 COPY frontend/package*.json ./
 RUN npm ci
 COPY frontend/ ./
+ENV NODE_OPTIONS=--max-old-space-size=4096
 RUN npm run build -- --configuration production
 
 # Stage 2: Build the Spring Boot backend

@@ -1,0 +1,10 @@
+# Exclude build dependencies and output folders from Docker context
+**/node_modules
+**/.angular
+**/dist
+**/target
+.git
+.github
+.idea
+.vscode
+*.log
