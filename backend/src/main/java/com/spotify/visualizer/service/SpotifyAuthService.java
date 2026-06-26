@@ -31,13 +31,25 @@ public class SpotifyAuthService {
             .baseUrl("https://accounts.spotify.com")
             .build();
 
+    private String getRedirectUri() {
+        try {
+            return org.springframework.web.servlet.support.ServletUriComponentsBuilder
+                    .fromCurrentContextPath()
+                    .path("/api/auth/callback")
+                    .build()
+                    .toUriString();
+        } catch (Exception e) {
+            return redirectUri;
+        }
+    }
+
     public String getAuthorizationUrl(String state) {
         String scope = "user-read-currently-playing user-read-playback-state user-modify-playback-state user-read-private streaming user-read-email";
         return UriComponentsBuilder.fromUriString("https://accounts.spotify.com/authorize")
                 .queryParam("response_type", "code")
                 .queryParam("client_id", clientId)
                 .queryParam("scope", scope)
-                .queryParam("redirect_uri", redirectUri)
+                .queryParam("redirect_uri", getRedirectUri())
                 .queryParam("state", state)
                 .build()
                 .toUriString();
@@ -48,7 +60,7 @@ public class SpotifyAuthService {
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
         body.add("grant_type", "authorization_code");
         body.add("code", code);
-        body.add("redirect_uri", redirectUri);
+        body.add("redirect_uri", getRedirectUri());
 
         return executeTokenRequest(body);
     }
