@@ -8,7 +8,7 @@ import { AuthService } from './auth.service';
   providedIn: 'root'
 })
 export class PlayerService implements OnDestroy {
-  private readonly apiBase = `http://${window.location.hostname}:8080/api/player`;
+  private readonly apiBase = '/api/player';
 
   private playbackState$ = new BehaviorSubject<PlaybackState | null>(null);
   private audioFeatures$ = new BehaviorSubject<AudioFeatures | null>(null);
@@ -49,7 +49,9 @@ export class PlayerService implements OnDestroy {
     }
 
     console.log('Establishing Spotify Player WebSocket connection...');
-    this.socket = new WebSocket(`ws://${window.location.hostname}:8080/ws/player`);
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.host;
+    this.socket = new WebSocket(`${protocol}//${host}/ws/player`);
 
     this.socket.onmessage = (event) => {
       try {

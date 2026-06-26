@@ -18,7 +18,7 @@ export interface AuthStatus {
   providedIn: 'root'
 })
 export class AuthService {
-  private readonly apiBase = `http://${window.location.hostname}:8080/api/auth`;
+  private readonly apiBase = '/api/auth';
   private authStatus$ = new BehaviorSubject<AuthStatus>({ loggedIn: false });
 
   constructor(private http: HttpClient) {}
