@@ -29,9 +29,19 @@ public class AuthController {
             .build();
 
     @GetMapping("/login")
-    public RedirectView login(HttpSession session) {
+    public RedirectView login(HttpServletRequest request, HttpSession session) {
         String state = UUID.randomUUID().toString();
         session.setAttribute("oauth_state", state);
+        
+        // Dynamically detect if login initiated from the local Angular dev server
+        String referer = request.getHeader("Referer");
+        if (referer != null && (referer.contains("localhost:4200") || referer.contains("127.0.0.1:4200"))) {
+            String devHost = referer.contains("127.0.0.1") ? "127.0.0.1" : "localhost";
+            session.setAttribute("frontend_redirect_base", "http://" + devHost + ":4200");
+        } else {
+            session.removeAttribute("frontend_redirect_base");
+        }
+
         String authUrl = spotifyAuthService.getAuthorizationUrl(state);
         log.info("Redirecting user to Spotify authorize URL: {}", authUrl);
         return new RedirectView(authUrl);
@@ -48,15 +58,15 @@ public class AuthController {
 
         log.info("Received callback from Spotify with code={} state={} error={}", code, state, error);
 
-        String frontendHost = "localhost";
-        if (request.getServerName() != null && request.getServerName().contains("127.0.0.1")) {
-            frontendHost = "127.0.0.1";
+        String redirectBase = (String) session.getAttribute("frontend_redirect_base");
+        if (redirectBase == null) {
+            redirectBase = ""; // Empty string translates to relative path for same-origin production
         }
 
         String savedState = (String) session.getAttribute("oauth_state");
         if (error != null || code == null) {
             log.warn("OAuth authorization failed: error={}", error);
-            response.sendRedirect("http://" + frontendHost + ":4200/login?error=unauthorized");
+            response.sendRedirect(redirectBase + "/login?error=unauthorized");
             return;
         }
 
@@ -68,13 +78,13 @@ public class AuthController {
         SpotifySession spotifySession = spotifyAuthService.exchangeCode(code);
         if (spotifySession == null) {
             log.error("Failed to exchange authorization code");
-            response.sendRedirect("http://" + frontendHost + ":4200/login?error=token_exchange_failed");
+            response.sendRedirect(redirectBase + "/login?error=token_exchange_failed");
             return;
         }
 
         session.setAttribute("spotify_session", spotifySession);
         log.info("Spotify session saved in HTTP session");
-        response.sendRedirect("http://" + frontendHost + ":4200/");
+        response.sendRedirect(redirectBase + "/");
     }
 
     @GetMapping("/status")
