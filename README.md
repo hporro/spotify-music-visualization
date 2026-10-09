@@ -1,5 +1,7 @@
 # Spotify Music Visualization
 
+![Spotify Music Visualization demo](./assets/spotify-visualizer.gif)
+
 An interactive music visualization application that combines **Spotify integration, Angular, Three.js, and a Java Spring Boot backend** to create a visual experience around music.
 
 **Live demo:** [spotify-music-visualization.onrender.com](https://spotify-music-visualization.onrender.com/)
